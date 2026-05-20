@@ -36,7 +36,7 @@ class ResUsers(models.Model):
         required=True,
     )
     oauth_uid = fields.Char(index=True)
-    settings = fields.Text("Custom Settings", readonly=True)
+    settings = fields.Text("Custom Settings")
 
     def get_mapped_language(self):
         lang = self.env["res.lang"]

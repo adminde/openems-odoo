@@ -72,6 +72,8 @@ class OpenemsBackend(http.Controller):
 
         # get devices for which the user has permissions
         device_model = http.request.env["openems.device"]
+        device_producttype_fields = device_model.fields_get(['producttype'])
+        device_producttypes = dict(device_producttype_fields['producttype']['selection'])
         devices = device_model.with_user(user_rec["id"]).search_read(
             [("name", "=", edge_id)],
             ["id", "name", "comment", "producttype", "lastmessage", "first_setup_protocol_date", "openems_sum_state_level", "settings"])
@@ -105,7 +107,7 @@ class OpenemsBackend(http.Controller):
             "id": device["id"],
             "name": device["name"],
             "comment": device["comment"],
-            "producttype": device["producttype"],
+            "producttype": device_producttypes[device["producttype"]],
             "role": role,
             "lastmessage": device["lastmessage"],
             "openems_sum_state_level": device["openems_sum_state_level"]
@@ -199,6 +201,8 @@ class OpenemsBackend(http.Controller):
 
         # Get Devices
         device_model = http.request.env["openems.device"]
+        device_producttype_fields = device_model.fields_get(['producttype'])
+        device_producttypes = dict(device_producttype_fields['producttype']['selection'])
         devices = device_model.with_user(user_rec["id"]).search_read(
             logical_operators,
             ["id", "name", "user_role_ids", "comment", "producttype",
@@ -228,7 +232,7 @@ class OpenemsBackend(http.Controller):
                 "id": device_rec["id"],
                 "name": device_rec["name"],
                 "comment": device_rec["comment"],
-                "producttype": device_rec["producttype"],
+                "producttype": device_producttypes[device_rec["producttype"]],
                 "role": role,
                 "lastmessage": device_rec["lastmessage"],
                 "openems_sum_state_level": device_rec["openems_sum_state_level"]
