@@ -58,17 +58,29 @@ class Device(models.Model):
     producttype = fields.Selection(
         [
             ("openems-edge", "OpenEMS Edge"),
+            ("th-e-demo", "Usecase Demonstrator"),
+            ("th-e-system", "OR/OS System"),
         ],
-        "Product type",
+        "EMS Type",
+        tracking=True,
+        default="th-e-system",
+    )
+    emshardware = fields.Selection(
+        [
+            ("docker-edge", "Docker Edge"),
+            ("revpi-connect-4", "RevPi Connect 4"),
+            ("raspberry-pi-5", "Raspberry Pi 5"),
+        ],
+        "EMS Hardware",
         tracking=True,
     )
-    emshardware = fields.Selection([], "EMS Hardware", tracking=True)
     oem = fields.Selection(
         [
+            ("th-e-energy", "TH-E Energy"),
             ("openems", "OpenEMS"),
         ],
         "OEM Branding",
-        default="openems",
+        default="th-e-energy",
     )
 
     # Settings
@@ -118,7 +130,12 @@ class Device(models.Model):
     @api.depends("name")
     def _compute_name_number(self):
         for rec in self:
-            rec.name_number = int(rec.name[4:]) if rec.name.startswith("edge") else -1
+            if rec.name.startswith("system"):
+                rec.name_number = int(rec.name[6:])
+            elif rec.name.startswith("edge") or rec.name.startswith("demo"):
+                rec.name_number = int(rec.name[4:])
+            else:
+                rec.name_number = -1
 
     def _get_openems_state_number(self, string):
         state = 0
