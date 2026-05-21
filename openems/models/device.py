@@ -59,7 +59,7 @@ class Device(models.Model):
         [
             ("openems-edge", "OpenEMS Edge"),
             ("th-e-demo", "Usecase Demonstrator"),
-            ("th-e-system", "OR/OS System"),
+            ("th-e-system", "TH-E System"),
         ],
         "EMS Type",
         tracking=True,
