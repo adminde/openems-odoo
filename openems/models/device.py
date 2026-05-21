@@ -1,5 +1,4 @@
 from odoo import api, fields, models, exceptions, _
-from datetime import datetime
 from odoo.exceptions import ValidationError
 import random
 import re
@@ -16,7 +15,7 @@ class Device(models.Model):
          "Serial number needs to be unique")
     ]
 
-    name = fields.Char(required=True)
+    name = fields.Char(required=True, default=lambda self: self._generate_unique_name({}))
     active = fields.Boolean("Active", default=True, tracking=True)
     comment = fields.Char(tracking=True)
     internalnote = fields.Text("Internal note", tracking=True)
@@ -154,7 +153,7 @@ class Device(models.Model):
                 if record.id and record.name != vals['name']:
                     self.env.cr.execute("""
                         SELECT EXISTS (
-                            SELECT 1 FROM openems_device 
+                            SELECT 1 FROM openems_device
                             WHERE name = %s AND id != %s
                         )
                     """, (vals['name'], record.id))
@@ -171,7 +170,10 @@ class Device(models.Model):
 
     @api.model
     def create(self, vals):
-        
+        # Generate name if not provided
+        if not vals.get('name'):
+            vals['name'] = self._generate_unique_name(vals)
+
         # Generate setup password if not provided
         if 'setup_password' not in vals or not vals['setup_password']:
             vals['setup_password'] = self._generate_unique_setup_password()
@@ -181,6 +183,22 @@ class Device(models.Model):
             vals['apikey'] = self._generate_api_key()
 
         return super(Device, self).create(vals)
+
+    @api.onchange('producttype')
+    def _onchange_producttype(self):
+        # Only auto-fill while creating a new record; never touch an existing
+        # device's name when the producttype is changed later.
+        if not isinstance(self.id, models.NewId):
+            return
+        self.name = self._generate_unique_name({'producttype': self.producttype})
+
+    @api.model
+    def _generate_unique_name(self, vals):
+        prefix = {
+            'openems-edge': 'edge',
+        }.get(vals.get('producttype', 'edge'), 'edge')
+        last = self.search([], order='name_number desc', limit=1)
+        return f'{prefix}{(last.name_number + 1) if last and last.name_number > 0 else 1}'
 
     def _generate_unique_setup_password(self):
         is_unique = False
