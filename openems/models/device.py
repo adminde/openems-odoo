@@ -79,8 +79,14 @@ class Device(models.Model):
     setup_password = fields.Char(
         "Installation Key",
         help="Password for commissioning by the installer",
+        tracking=True,
+        default = lambda self: self._generate_unique_setup_password(),
     )
-    apikey = fields.Char("API-Key", required=True, tracking=True)
+    apikey = fields.Char(
+        "API-Key",
+        tracking=True,
+        default=lambda self: self._generate_api_key()
+    )
 
     # 'openems_sum_state_level' is updated by OpenEMS Backend
     openems_sum_state_level = fields.Selection(
@@ -146,7 +152,7 @@ class Device(models.Model):
                         raise exceptions.UserError(
                             "The name '{}' is already in use or does not follow the required pattern.".format(
                                 vals['name']))
-    
+
                     # If you simply want to prevent name changes, the following UserError suffices
                     raise exceptions.UserError("The name of the device cannot be changed after creation.")
         return super(Device, self).write(vals)
@@ -183,6 +189,7 @@ class Device(models.Model):
         last = self.search([], order='name_number desc', limit=1)
         return f'{prefix}{(last.name_number + 1) if last and last.name_number > 0 else 1}'
 
+    @api.model
     def _generate_unique_setup_password(self):
         is_unique = False
         setup_password = ''
@@ -197,13 +204,14 @@ class Device(models.Model):
                 is_unique = True
         return setup_password
 
+    @api.model
     def _generate_api_key(self):
         # Initialize a flag to indicate whether the generated key is unique
         is_unique = False
         api_key = ''
         while not is_unique:
             # Generate a random API key
-            api_key = ''.join(random.choices(string.ascii_letters + string.digits, k=20))
+            api_key = ''.join(random.choices(string.ascii_letters + string.digits, k=160))
             # Check if the generated API key already exists
             existing = self.search_count([('apikey', '=', api_key)])
             # If the key does not exist, it is unique, and we can exit the loop
