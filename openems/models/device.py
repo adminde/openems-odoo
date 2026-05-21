@@ -180,7 +180,7 @@ class Device(models.Model):
 
         # Generate API key if not provided
         if 'apikey' not in vals or not vals['apikey']:
-            vals['apikey'] = self._generate_api_key()
+            vals['apikey'] = self._generate_api_key(vals)
 
         return super(Device, self).create(vals)
 
@@ -196,7 +196,9 @@ class Device(models.Model):
     def _generate_unique_name(self, vals):
         prefix = {
             'openems-edge': 'edge',
-        }.get(vals.get('producttype', 'edge'), 'edge')
+            'th-e-demo': 'demo',
+            'th-e-system': 'system',
+        }.get(vals.get('producttype', 'th-e-system'), 'system')
         last = self.search([], order='name_number desc', limit=1)
         return f'{prefix}{(last.name_number + 1) if last and last.name_number > 0 else 1}'
 
@@ -214,13 +216,19 @@ class Device(models.Model):
                 is_unique = True
         return setup_password
 
-    def _generate_api_key(self):
+    def _generate_api_key(self, vals):
         # Initialize a flag to indicate whether the generated key is unique
         is_unique = False
         api_key = ''
         while not is_unique:
             # Generate a random API key
-            api_key = ''.join(random.choices(string.ascii_letters + string.digits, k=20))
+            target = {
+                'th-e-demo': 'demo',
+                'th-e-system': 'prod',
+                'openems-edge': 'prod',
+            }.get(vals.get('producttype', 'th-e-system'), 'prod')
+            prefix = f"th-e_{target}_"
+            api_key = prefix + "".join(random.choices(string.ascii_letters + string.digits, k=128 - len(prefix)))
             # Check if the generated API key already exists
             existing = self.search_count([('apikey', '=', api_key)])
             # If the key does not exist, it is unique, and we can exit the loop
