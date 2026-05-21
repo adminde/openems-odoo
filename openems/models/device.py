@@ -173,8 +173,7 @@ class Device(models.Model):
         # device's name when the producttype is changed later.
         if not isinstance(self.id, models.NewId):
             return
-        if not self.name:
-            self.name = self._generate_unique_name({'producttype': self.producttype})
+        self.name = self._generate_unique_name({'producttype': self.producttype})
 
     @api.model
     def _generate_unique_name(self, vals):
