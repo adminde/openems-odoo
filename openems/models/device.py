@@ -187,7 +187,7 @@ class Device(models.Model):
             'openems-edge': 'edge',
         }.get(vals.get('producttype', 'edge'), 'edge')
         last = self.search([], order='name_number desc', limit=1)
-        return f'{prefix}{(last.name_number + 1) if last and last.name_number > 0 else 1}'
+        return f'{prefix}{(last.name_number + 1) if last and last.name_number > 0 else 0}'
 
     @api.model
     def _generate_unique_setup_password(self):
