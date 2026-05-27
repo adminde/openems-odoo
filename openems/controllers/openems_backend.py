@@ -21,7 +21,7 @@ class OpenemsBackend(http.Controller):
         manager_group_id = manager_group["id"]
         reader_group_id = reader_group["id"]
 
-        settings = user_rec["settings"] if user_rec.get("settings") else {}
+        settings = user_rec["settings"] if user_rec.get("settings") else "{}"
 
         # Get user attributes
         global_role = user_rec["global_role"]
