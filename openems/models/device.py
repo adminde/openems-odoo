@@ -1,5 +1,4 @@
 from odoo import api, fields, models, exceptions, _
-from datetime import datetime
 from odoo.exceptions import ValidationError
 import random
 import re
@@ -56,20 +55,58 @@ class Device(models.Model):
                 rec.monitoring_url = base_url
 
     producttype = fields.Selection(
-        [
-            ("openems-edge", "OpenEMS Edge"),
-        ],
-        "Product type",
+        selection="_compute_producttype_selection",
+        string="Product type",
         tracking=True,
     )
-    emshardware = fields.Selection([], "EMS Hardware", tracking=True)
-    oem = fields.Selection(
-        [
-            ("openems", "OpenEMS"),
-        ],
-        "OEM Branding",
-        default="openems",
+    emshardware = fields.Selection(
+        selection="_compute_emshardware_selection",
+        string="EMS Hardware",
+        tracking=True,
     )
+    oem = fields.Selection(
+        selection="_compute_oem_selection",
+        string="OEM Branding",
+        default=lambda self: self._compute_oem_default(),
+    )
+
+    @api.constrains("oem", "producttype")
+    def _check_producttype_matches_oem(self):
+        # A Selection offers the union of all brands and cannot be narrowed per
+        # record, so the pair is only enforceable here. This has to be done,
+        # because the brand resolves mail templates and reports on it.
+        for rec in self:
+            # Without an OEM there is no brand to validate the pair against.
+            if not rec.oem or not rec.producttype:
+                continue
+            brand = self.env[f"openems.oem.{rec.oem}"]
+            if rec.producttype not in dict(brand.product_types()):
+                raise ValidationError(
+                    _("Product type '%(type)s' does not belong to OEM '%(oem)s'.")
+                    % {"type": rec.producttype, "oem": rec.oem}
+                )
+
+    def _compute_producttype_selection(self):
+        brands = self.env["openems.oem"]._brands()
+        return self._merge_oem_selections(brand.product_types() for brand in brands)
+
+    def _compute_emshardware_selection(self):
+        brands = self.env["openems.oem"]._brands()
+        return self._merge_oem_selections(brand.ems_hardwares() for brand in brands)
+
+    def _compute_oem_selection(self):
+        return [(brand._code, brand._label) for brand in self.env["openems.oem"]._brands()]
+
+    def _compute_oem_default(self):
+        return self.env["ir.config_parameter"].sudo().get_param("edge_oem", "openems")
+
+    def _merge_oem_selections(self, oem):
+        # Codes are global, so two brands may offer the same one. The last label
+        # wins rather than the value appearing twice in the dropdown.
+        selection = {}
+        for values in oem:
+            selection.update(dict(values))
+        return list(selection.items())
 
     # Settings
     openems_config = fields.Text("OpenEMS Config Full")
@@ -137,7 +174,7 @@ class Device(models.Model):
                 if record.id and record.name != vals['name']:
                     self.env.cr.execute("""
                         SELECT EXISTS (
-                            SELECT 1 FROM openems_device 
+                            SELECT 1 FROM openems_device
                             WHERE name = %s AND id != %s
                         )
                     """, (vals['name'], record.id))
@@ -147,14 +184,14 @@ class Device(models.Model):
                         raise exceptions.UserError(
                             "The name '{}' is already in use or does not follow the required pattern.".format(
                                 vals['name']))
-    
+
                     # If you simply want to prevent name changes, the following UserError suffices
                     raise exceptions.UserError("The name of the device cannot be changed after creation.")
         return super(Device, self).write(vals)
 
     @api.model
     def create(self, vals):
-        
+
         # Generate setup password if not provided
         if 'setup_password' not in vals or not vals['setup_password']:
             vals['setup_password'] = self._generate_unique_setup_password()

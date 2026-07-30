@@ -13,6 +13,10 @@
          <field name="key">edge_menu</field>
          <field name="value">OpenEMS Edge</field>
       </record>
+      <record id="config_edge_oem" model="ir.config_parameter">
+         <field name="key">edge_oem</field>
+         <field name="value">openems</field>
+      </record>
       <record id="config_edge_monitoring_url" model="ir.config_parameter">
          <field name="key">edge_monitoring_url</field>
          <field name="value">http://localhost:8082/device/</field>

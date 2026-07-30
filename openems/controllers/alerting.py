@@ -86,21 +86,22 @@ class Alerting(http.Controller):
 
     def __get_template(self, device_id, name: str):
         oem, product_type = self.__get_device_data(device_id)
-        return request.env["openems.oem"].mail_template(
-            oem, name, product_type=product_type
-        )
+        if not oem:
+            oem = request.env["ir.config_parameter"].sudo().get_param("edge_oem", "openems")
+        resolver = request.env[f"openems.oem.{oem}"]
+        return resolver.mail_template(name, product_type)
 
-    def __get_device_data(self, device_id) -> Tuple[str, Optional[str]]:
+    def __get_device_data(self, device_id) -> Tuple[Optional[str], Optional[str]]:
         if device_id:
-            found = http.request.env["openems.device"].search_read(
+            device = http.request.env["openems.device"].search_read(
                 [("name", "=", device_id)], ["oem", "producttype"]
             )
-            if len(found) == 1 and found[0].get("oem"):
-                return found[0]["oem"], found[0].get("producttype") or ""
+            if len(device) > 0:
+                return device[0]["oem"], device[0].get("producttype") or None
             self.__logger.warning(
-                f"no device with id '{device_id}' found, using fallback oem"
+                f"No device with id '{device_id}' found, using fallback oem"
             )
-        return "openems", None
+        return None, None
 
     def __send_mails(self, template, msg: Message, update_func) -> int:
         roles = http.request.env['openems.alerting'].search(

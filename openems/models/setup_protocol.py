@@ -30,12 +30,18 @@ class SetupProtocol(models.Model):
         # Resolved per record rather than bound in the view, so the printed
         # layout follows the device's OEM.
         self.ensure_one()
-        report = self.env["openems.oem"].report(
+        report = self.__get_report(
             self.device_id.oem,
-            "action_openems_setup_protocol_report",
-            product_type=self.device_id.producttype,
+            self.device_id.producttype,
+            "action_setup_protocol_report",
         )
         return report.report_action(self)
+
+    def __get_report(self, oem, product_type: str, name: str):
+        if not oem:
+            oem = self.env["ir.config_parameter"].sudo().get_param("edge_oem", "openems")
+        resolver = self.env[f"openems.oem.{oem}"]
+        return resolver.report(name, product_type)
 
 
 class SetupProtocolProductionLot(models.Model):

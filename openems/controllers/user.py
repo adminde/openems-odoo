@@ -17,7 +17,7 @@ class User(http.Controller):
         if password is None:
             password = "*****"
         # load template
-        template = self.getTemplate(oem)
+        template = self.__get_template(oem)
         # set mail values
         email_values = {
             'password': password
@@ -27,6 +27,8 @@ class User(http.Controller):
             res_id=partner_id[0])
         return {}
 
-    def getTemplate(self, oem: str):
-        # No device in this flow, so no producttype to resolve on.
-        return request.env["openems.oem"].mail_template(oem, "registration_email")
+    def __get_template(self, oem: str):
+        if not oem:
+            oem = request.env["ir.config_parameter"].sudo().get_param("edge_oem", "openems")
+
+        return request.env[f"openems.oem.{oem}"].mail_template("registration_email")

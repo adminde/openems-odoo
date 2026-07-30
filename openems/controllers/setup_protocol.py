@@ -26,12 +26,11 @@ class SetupProtocol(http.Controller):
             + setup_protocol_record[0]["create_date"].strftime("%d.%m.%Y")
             + ".pdf"
         )
+        oem = device_rec[0]['oem']
+        if not oem:
+            oem = request.env["ir.config_parameter"].sudo().get_param("edge_oem", "openems")
 
-        report = request.env["openems.oem"].report(
-            device_rec[0]["oem"],
-            "action_openems_setup_protocol_report",
-            product_type=device_rec[0]["producttype"],
-        )
+        report = self.__get_report(oem, "action_setup_protocol_report", device_rec[0]["producttype"])
         data = report._render_qweb_pdf([setupProtocolId])
         ibnPdf = request.env["ir.attachment"].create(
             {
@@ -43,11 +42,7 @@ class SetupProtocol(http.Controller):
             }
         )
 
-        templates = self.__get_templates(
-            device_rec[0]['oem'],
-            device_rec[0]['producttype'],
-            ibnPdf
-        )
+        templates = self.__get_templates(oem, device_rec[0]['producttype'], ibnPdf)
         templates['installer'].send_mail(setupProtocolId)
         templates['customer'].send_mail(setupProtocolId)
 
@@ -137,11 +132,20 @@ class SetupProtocol(http.Controller):
         return response
 
     @staticmethod
+    def __get_report(oem, product_type: str, name: str):
+        if not oem:
+            oem = request.env["ir.config_parameter"].sudo().get_param("edge_oem", "openems")
+        resolver = request.env[f"openems.oem.{oem}"]
+        return resolver.report(name, product_type)
+
+    @staticmethod
     def __get_templates(oem: str, product_type: str, protocol):
-        resolver = request.env["openems.oem"]
+        if not oem:
+            oem = request.env["ir.config_parameter"].sudo().get_param("edge_oem", "openems")
+        resolver = request.env[f"openems.oem.{oem}"]
         templates = {
-            'customer': resolver.mail_template(oem, "setup_protocol_email_customer", product_type=product_type),
-            'installer': resolver.mail_template(oem, "setup_protocol_email_installer", product_type=product_type),
+            'customer': resolver.mail_template("setup_protocol_email_customer", product_type),
+            'installer': resolver.mail_template("setup_protocol_email_installer", product_type),
         }
 
         # The footer logo is a static module path, not an attachment - adding it
