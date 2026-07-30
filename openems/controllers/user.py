@@ -28,5 +28,5 @@ class User(http.Controller):
         return {}
 
     def getTemplate(self, oem: str):
-        template = request.env.ref("openems.registration_email")
-        return template
+        # No device in this flow, so no producttype to resolve on.
+        return request.env["openems.oem"].mail_template(oem, "registration_email")

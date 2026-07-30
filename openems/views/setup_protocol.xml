@@ -8,9 +8,9 @@
                 <sheet>
                     <group>
                         <button
-                            name="%(action_openems_setup_protocol_report)d"
+                            name="action_print_setup_protocol"
                             string="Print"
-                            type="action"
+                            type="object"
                             icon="fa-print"
                         />
                     </group>

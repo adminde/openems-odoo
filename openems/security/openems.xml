@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
     <record id="module_category_openems" model="ir.module.category">
-        <field name="name">OpenEMS</field>
+        <field
+            name="name"
+            model="ir.config_parameter"
+            eval="obj().get_param('edge_app_name', 'OpenEMS')"
+        />
         <field name="sequence">30</field>
     </record>
 

@@ -39,8 +39,7 @@ class ResUsers(models.Model):
     settings = fields.Text("Custom Settings", readonly=True)
 
     def get_mapped_language(self):
-        lang = self.env["res.lang"]
-        if self.openems_language == "EN":
-            return lang.search(["code", "=", "en_US"], limit=1)
-        else:
-            return lang.search(["code", "=", "de_DE"], limit=1)
+        code = "en_US" if self.openems_language == "EN" else "de_DE"
+        # Empty when the language is not installed; mail.template then falls
+        # back to the recipient's own language.
+        return self.env["res.lang"].search([("code", "=", code)], limit=1).code

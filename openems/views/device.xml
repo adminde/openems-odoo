@@ -12,13 +12,13 @@
                 decoration-info="openems_is_connected==True and openems_sum_state_level=='info'"
                 decoration-it="openems_is_connected!=True"
             >
-                <field name="name" string="OpenEMS-Number" />
+                <field name="name" />
                 <field name="comment" string="Description" />
                 <field name="producttype" />
-                <field name="openems_version" string="OE Version" />
-                <field name="openems_is_connected" string="OE Connected" />
+                <field name="openems_version" string="Version" />
+                <field name="openems_is_connected" string="Connected" />
                 <field name="lastmessage" />
-                <field name="openems_sum_state_level" string="OE State" />
+                <field name="openems_sum_state_level" string="State" />
                 <field name="internalnote" />
                 <field name="tag_ids" widget="many2many_tags" />
             </list>
@@ -30,7 +30,7 @@
         <field name="model">openems.device</field>
         <field name="arch" type="xml">
             <search>
-                <field name="name" string="OpenEMS-Number" />
+                <field name="name" />
                 <field name="comment" string="Description" />
                 <field name="producttype" />
                 <field name="internalnote" />
@@ -239,7 +239,7 @@
 
     <!-- OpenEMS Configuration Updates -->
     <record id="action_openems_openemsconfigupdate" model="ir.actions.act_window">
-        <field name="name">Device Configuration Updates</field>
+        <field name="name">OpenEMS Configuration Updates</field>
         <field name="res_model">openems.openemsconfigupdate</field>
     </record>
 
@@ -273,7 +273,7 @@
 
     <!-- System Message -->
     <record id="action_openems_systemmessage" model="ir.actions.act_window">
-        <field name="name">Systemmessages</field>
+        <field name="name">OpenEMS Messages</field>
         <field name="res_model">openems.systemmessage</field>
     </record>
 
@@ -305,14 +305,31 @@
         </field>
     </record>
 
-    <!-- Menus -->
-    <menuitem
-        sequence="100"
-        id="menu_openems"
-        name="OpenEMS"
-        web_icon="openems,static/description/icon.png"
-    />
-    <menuitem id="menu_openems_content" parent="menu_openems" name="OpenEMS Edge" />
+    <!--
+        Menus carrying a brand term are records rather than menuitem shortcuts:
+        eval is only available on a field inside a record.
+    -->
+    <record id="menu_openems" model="ir.ui.menu">
+        <field name="sequence">100</field>
+        <field
+            name="name"
+            model="ir.config_parameter"
+            eval="obj().get_param('edge_app_name', 'OpenEMS')"
+        />
+        <field
+            name="web_icon"
+            model="ir.config_parameter"
+            eval="obj().get_param('edge_app_icon', 'openems,static/description/icon.png')"
+        />
+    </record>
+    <record id="menu_openems_content" model="ir.ui.menu">
+        <field name="parent_id" ref="menu_openems" />
+        <field
+            name="name"
+            model="ir.config_parameter"
+            eval="obj().get_param('edge_menu', 'OpenEMS Edge')"
+        />
+    </record>
     <menuitem
         id="menu_openems_content_devices"
         parent="menu_openems_content"

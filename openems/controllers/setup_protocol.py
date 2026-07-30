@@ -27,9 +27,12 @@ class SetupProtocol(http.Controller):
             + ".pdf"
         )
 
-        data = request.env.ref(
-            "openems.action_openems_setup_protocol_report"
-        )._render_qweb_pdf([setupProtocolId])
+        report = request.env["openems.oem"].report(
+            device_rec[0]["oem"],
+            "action_openems_setup_protocol_report",
+            product_type=device_rec[0]["producttype"],
+        )
+        data = report._render_qweb_pdf([setupProtocolId])
         ibnPdf = request.env["ir.attachment"].create(
             {
                 "res_model": "openems.device",
@@ -40,29 +43,15 @@ class SetupProtocol(http.Controller):
             }
         )
 
-        templates = self.getTemplates(device_rec[0]['oem'], ibnPdf)
-
+        templates = self.__get_templates(
+            device_rec[0]['oem'],
+            device_rec[0]['producttype'],
+            ibnPdf
+        )
         templates['installer'].send_mail(setupProtocolId)
         templates['customer'].send_mail(setupProtocolId)
 
         return {}
-
-    def getTemplates(self, oem: str, protocol):
-        templates = {'customer': None, 'installer': None}
-
-        templates['customer'] = request.env.ref(
-            "openems.setup_protocol_email_customer")
-        templates['installer'] = request.env.ref(
-            "openems.setup_protocol_email_installer")
-
-        logo = request.env.ref("openems.attachment_logo_openems")
-
-        templates['customer'].attachment_ids = [
-            (6, 0, [protocol.id, logo.id])]
-        templates['installer'].attachment_ids = [
-            (6, 0, [protocol.id, logo.id])]
-
-        return templates
 
     @http.route('/openems_backend/get_latest_setup_protocol', type='json', auth='user')
     def get_latest_setup_protocol(self, external_uid, edge_name):
@@ -75,7 +64,7 @@ class SetupProtocol(http.Controller):
         # search for device
         device_model = request.env['openems.device']
         device = device_model.with_user(user_rec[0]).search([('name', '=', edge_name)])
-        
+
         response = dict()
         if not len(device.setup_protocol_ids) > 0:
             return response
@@ -146,3 +135,18 @@ class SetupProtocol(http.Controller):
         response.update({"items": items})
 
         return response
+
+    @staticmethod
+    def __get_templates(oem: str, product_type: str, protocol):
+        resolver = request.env["openems.oem"]
+        templates = {
+            'customer': resolver.mail_template(oem, "setup_protocol_email_customer", product_type=product_type),
+            'installer': resolver.mail_template(oem, "setup_protocol_email_installer", product_type=product_type),
+        }
+
+        # The footer logo is a static module path, not an attachment - adding it
+        # here would make it a visible MIME part next to the PDF.
+        for template in templates.values():
+            template.attachment_ids = [(6, 0, [protocol.id])]
+
+        return templates

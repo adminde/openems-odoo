@@ -7,7 +7,7 @@ import string
 
 class Device(models.Model):
     _name = "openems.device"
-    _description = "OpenEMS Edge Device"
+    _description = "OpenEMS Edge"
     _inherit = "mail.thread"
     _order = "name_number asc"
     _sql_constraints = [
@@ -95,7 +95,7 @@ class Device(models.Model):
     lastmessage = fields.Datetime("Last message")
     lastupdate = fields.Datetime("Last data update")
 
-    # Verknüpfungen
+    # Relations
     systemmessage_ids = fields.One2many(
         "openems.systemmessage", "device_id", string="System Messages"
     )
@@ -220,13 +220,13 @@ class Device(models.Model):
 
 class DeviceTag(models.Model):
     _name = "openems.device_tag"
-    _description = "OpenEMS Edge Device Tag"
+    _description = "OpenEMS Edge Tag"
     name = fields.Char(required=True)
 
 
 class DeviceUserRole(models.Model):
     _name = "openems.device_user_role"
-    _description = "OpenEMS Edge Device User Role"
+    _description = "OpenEMS Edge User Role"
     _sql_constraints = [
         (
             "device_user_uniq",
@@ -250,7 +250,7 @@ class DeviceUserRole(models.Model):
 
 class OpenemsConfigUpdate(models.Model):
     _name = "openems.openemsconfigupdate"
-    _description = "OpenEMS Edge Device Configuration Update"
+    _description = "OpenEMS Edge Configuration Update"
     _order = "create_date desc"
 
     device_id = fields.Many2one("openems.device", string="OpenEMS Edge",index=True)

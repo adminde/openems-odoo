@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-    <record id="openems.action_openems_setup_protocol_report"  model="ir.actions.report">
+    <record id="openems.action_setup_protocol_report"  model="ir.actions.report">
         <field name="name">OpenEMS Setup Protocol</field>
         <field name="model">openems.setup_protocol</field>
         <field name="report_type">qweb-pdf</field>
-        <field name="report_name">openems.report_openems_setup_protocol_template</field>
-        <field name="print_report_name">('IBN-' + object.openems_device_id.name + '-' + object.create_date.strftime('%d.%m.%Y'))</field>
+        <field name="report_name">openems.report_setup_protocol_template</field>
+        <field name="print_report_name">('IBN-' + object.device_id.name + '-' + object.create_date.strftime('%d.%m.%Y'))</field>
     </record>
-    <template id="report_openems_setup_protocol_template">
+    <template id="report_setup_protocol_template">
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="doc">
                 <t t-call="web.basic_layout">

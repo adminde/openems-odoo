@@ -26,6 +26,17 @@ class SetupProtocol(models.Model):
         default="setup-protocol",
     )
 
+    def action_print_setup_protocol(self):
+        # Resolved per record rather than bound in the view, so the printed
+        # layout follows the device's OEM.
+        self.ensure_one()
+        report = self.env["openems.oem"].report(
+            self.device_id.oem,
+            "action_openems_setup_protocol_report",
+            product_type=self.device_id.producttype,
+        )
+        return report.report_action(self)
+
 
 class SetupProtocolProductionLot(models.Model):
     _name = "openems.setup_protocol_production_lot"
