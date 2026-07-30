@@ -17,7 +17,7 @@ class User(http.Controller):
         if password is None:
             password = "*****"
         # load template
-        template = self.getTemplate(oem)
+        template = self.__get_template(oem)
         # set mail values
         email_values = {
             'password': password
@@ -27,6 +27,6 @@ class User(http.Controller):
             res_id=partner_id[0])
         return {}
 
-    def getTemplate(self, oem: str):
+    def __get_template(self, oem: str):
         template = request.env.ref("openems.registration_email")
         return template

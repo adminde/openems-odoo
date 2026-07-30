@@ -5,8 +5,8 @@
     "author": "OpenEMS Association e.V.",
     "maintainer": "OpenEMS Association e.V.",
     "contributors": [
-        "Stefan Feilmeier <stefan.feilmeier@fenecon.de>"
-        "Maximilian Lang <maximilian.lang@fenecon.de>"
+        "Stefan Feilmeier <stefan.feilmeier@fenecon.de>",
+        "Maximilian Lang <maximilian.lang@fenecon.de>",
     ],
     "website": "https://openems.io",
     "license": "AGPL-3",

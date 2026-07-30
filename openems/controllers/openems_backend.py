@@ -166,12 +166,12 @@ class OpenemsBackend(http.Controller):
 
             if searchParams.get("orderState"):
 
-                def map_field(input):
+                def map_field(sort_field):
                     lookup = {"id": "name_number", "comment": "comment", "sumState": "openems_sum_state_level"}
-                    field = lookup.get(input)
+                    field = lookup.get(sort_field)
 
                     if not field:
-                        raise ValueError("{input} is not supported")
+                        raise ValueError(f"{sort_field} is not supported")
                     return field
                 
                 order_state = list(map(lambda s: (map_field(s["field"]), s["sortOrder"]), searchParams.get("orderState")))

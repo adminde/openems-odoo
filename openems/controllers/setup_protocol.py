@@ -30,7 +30,7 @@ class SetupProtocol(http.Controller):
         data = request.env.ref(
             "openems.action_openems_setup_protocol_report"
         )._render_qweb_pdf([setupProtocolId])
-        ibnPdf = request.env["ir.attachment"].create(
+        ibn_pdf = request.env["ir.attachment"].create(
             {
                 "res_model": "openems.device",
                 "res_id": device_rec[0]["id"],
@@ -40,14 +40,14 @@ class SetupProtocol(http.Controller):
             }
         )
 
-        templates = self.getTemplates(device_rec[0]['oem'], ibnPdf)
+        templates = self.__get_templates(device_rec[0]['oem'], ibn_pdf)
 
         templates['installer'].send_mail(setupProtocolId)
         templates['customer'].send_mail(setupProtocolId)
 
         return {}
 
-    def getTemplates(self, oem: str, protocol):
+    def __get_templates(self, oem: str, protocol):
         templates = {'customer': None, 'installer': None}
 
         templates['customer'] = request.env.ref(
@@ -74,7 +74,7 @@ class SetupProtocol(http.Controller):
 
         # search for device
         device_model = request.env['openems.device']
-        device = device_model.with_user(user_rec[0]).search([('name', '=', edge_name)])
+        device = device_model.with_user(user_rec["id"]).search([('name', '=', edge_name)])
         
         response = dict()
         if not len(device.setup_protocol_ids) > 0:

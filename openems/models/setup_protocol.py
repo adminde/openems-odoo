@@ -35,7 +35,7 @@ class SetupProtocolProductionLot(models.Model):
     sequence = fields.Integer("Sort")
     category = fields.Char("Category")
     name = fields.Char("Name")
-    lot_id = fields.Many2one("stock.production.lot", "Serial Number")
+    lot_id = fields.Many2one("stock.lot", "Serial Number")
     setup_protocol_id = fields.Many2one(
         "openems.setup_protocol", "Setup Protocol", ondelete="cascade"
     )

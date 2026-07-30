@@ -120,13 +120,13 @@ class Device(models.Model):
         for rec in self:
             rec.name_number = int(rec.name[4:]) if rec.name.startswith("edge") else -1
 
-    def _get_openems_state_number(self, string):
+    def _get_openems_state_number(self, sum_state_level):
         state = 0
-        if string == "info":
+        if sum_state_level == "info":
             state = 1
-        elif string == "warning":
+        elif sum_state_level == "warning":
             state = 2
-        elif string == "fault":
+        elif sum_state_level == "fault":
             state = 3
         return state
 
@@ -305,18 +305,19 @@ class Alerting(models.Model):
     @api.depends("device_id")
     def _compute_device_name(self):
         for rec in self:
-            rec.device_name = rec.device_id.name;
+            rec.device_name = rec.device_id.name
 
     @api.depends("user_id","user_id.login")
     def _compute_user_login(self):
         for rec in self:
-            rec.user_login = rec.user_id.login;
+            rec.user_login = rec.user_id.login
 
-    @api.depends("user_id", "device_id")
+    @api.depends("user_id", "device_id", "user_id.device_role_ids.device_id")
     def _compute_user_role(self):
         for rec in self:
-            user_role: DeviceUserRole = rec.user_id.device_role_ids.search([('device_id','=',rec.device_id.id)])
-            if user_role:
-                return user_role.role
-            else:
-                return rec.user_id.global_role
+            # Filtered rather than searched: device_role_ids is already scoped to
+            # the user, a search would span every user's roles.
+            device_role = rec.user_id.device_role_ids.filtered(
+                lambda role: role.device_id == rec.device_id
+            )
+            rec.user_role = device_role[:1].role or rec.user_id.global_role

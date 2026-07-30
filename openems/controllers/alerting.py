@@ -10,20 +10,20 @@ class SumState(Enum):
     WARNING = 1
 
 class Message:
-    sentAt: datetime
-    edgeId: str
-    userLogins: list[str]
+    sent_at: datetime
+    edge_id: str
+    user_logins: list[str]
 
-    def __init__(self, sentAt: datetime, edgeId: str, userLogins : list[str]) -> None:
-        self.sentAt = sentAt
-        self.edgeId = edgeId
-        self.userLogins = userLogins 
-        
+    def __init__(self, sent_at: datetime, edge_id: str, user_logins: list[str]) -> None:
+        self.sent_at = sent_at
+        self.edge_id = edge_id
+        self.user_logins = user_logins
+
 class SumStateMessage(Message):
     state: SumState
-    
-    def __init__(self, sentAt: datetime, edgeId: str, userLogins: list[str], state: SumState) -> None:
-        super().__init__(sentAt, edgeId, userLogins)
+
+    def __init__(self, sent_at: datetime, edge_id: str, user_logins: list[str], state: SumState) -> None:
+        super().__init__(sent_at, edge_id, user_logins)
         self.state = state
 
 class Alerting(http.Controller):
@@ -58,7 +58,7 @@ class Alerting(http.Controller):
         mails_sent = 0
 
         for msg in msgs:
-            template = self.__get_template(msg.edgeId)
+            template = self.__get_template(msg.edge_id)
             mails_sent += self.__send_mails(template, msg, update_func)
 
         return {"status": "success", "mails_sent": mails_sent}
@@ -67,19 +67,19 @@ class Alerting(http.Controller):
         msgs = list()
         sent = datetime.strptime(sentAt, self.__datetime_format)
         for param in params:
-            edgeId = param["edgeId"]
+            edge_id = param["edgeId"]
             recipients = param["recipients"]
-            msgs.append(Message(sent, edgeId, recipients));
+            msgs.append(Message(sent, edge_id, recipients))
         return msgs
     
     def __get_sum_state_params(self, sentAt, params) -> list[SumStateMessage]:
         msgs = list()
         sent = datetime.strptime(sentAt, self.__datetime_format)
         for param in params:
-            edgeId = param["edgeId"]
+            edge_id = param["edgeId"]
             recipients = param["recipients"]
             state = param["state"]
-            msgs.append(SumStateMessage(sent, edgeId, recipients, state));
+            msgs.append(SumStateMessage(sent, edge_id, recipients, state))
         return msgs
     
     def __get_template(self, device_id):
@@ -104,19 +104,19 @@ class Alerting(http.Controller):
                
     def __send_mails(self, template, msg: Message, update_func) -> int:
         roles = http.request.env['openems.alerting'].search(
-            [('user_login','in', msg.userLogins),('device_id','=', msg.edgeId)]
+            [('user_login','in', msg.user_logins),('device_id','=', msg.edge_id)]
         )
-        
+
         if not roles or len(roles) == 0:
-            self.__logger.error(f"No AlertingSettings found for edgeId[{msg.edgeId}] and userLogins[{msg.userLogins}]!!!")
+            self.__logger.error(f"No AlertingSettings found for edgeId[{msg.edge_id}] and userLogins[{msg.user_logins}]!!!")
             return 0
         
         mails_sent = 0
         for role in roles:
             try:
                 template.send_mail(res_id=role.id)
-                update_func(role, msg.sentAt)
+                update_func(role, msg.sent_at)
                 mails_sent += 1
             except Exception as err:
-                self.__logger.error(f"[{err}] Unable to send template[{template.name}] to edgeUser[user={role.id}, edge={msg.edgeId}]")
+                self.__logger.error(f"[{err}] Unable to send template[{template.name}] to edgeUser[user={role.id}, edge={msg.edge_id}]")
         return mails_sent
