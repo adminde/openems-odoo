@@ -1,9 +1,21 @@
+import logging
+
 from odoo import http
 from odoo.http import request
 
+_logger = logging.getLogger(__name__)
+
+ROUTE = "/openems_backend/send_registration_email"
+ROUTE_DEPRECATED = "/openems_backend/sendRegistrationEmail"
+
+
 class User(http.Controller):
-    @http.route("/openems_backend/sendRegistrationEmail", type="json", auth="user")
+    @http.route([ROUTE, ROUTE_DEPRECATED], type="json", auth="user")
     def index(self, userId, password=None, oem: str = ''):
+        if request.httprequest.path == ROUTE_DEPRECATED:
+            _logger.warning(
+                "Deprecated route %s called, use %s instead", ROUTE_DEPRECATED, ROUTE
+            )
         user_model = request.env["res.users"]
         user_record = user_model.search_read([("id", "=", userId)], ["partner_id"])
         if len(user_record) != 1:

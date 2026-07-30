@@ -1,12 +1,22 @@
 import base64
+import logging
 
 from odoo import http
 from odoo.http import request
 
+_logger = logging.getLogger(__name__)
+
+ROUTE = "/openems_backend/send_setup_protocol_email"
+ROUTE_DEPRECATED = "/openems_backend/sendSetupProtocolEmail"
+
 
 class SetupProtocol(http.Controller):
-    @http.route("/openems_backend/sendSetupProtocolEmail", type="json", auth="user")
+    @http.route([ROUTE, ROUTE_DEPRECATED], type="json", auth="user")
     def index(self, setupProtocolId, edgeId):
+        if request.httprequest.path == ROUTE_DEPRECATED:
+            _logger.warning(
+                "Deprecated route %s called, use %s instead", ROUTE_DEPRECATED, ROUTE
+            )
         setup_protocol_model = request.env["openems.setup_protocol"]
         setup_protocol_record = setup_protocol_model.search_read(
             [("id", "=", setupProtocolId)]
@@ -75,7 +85,7 @@ class SetupProtocol(http.Controller):
         # search for device
         device_model = request.env['openems.device']
         device = device_model.with_user(user_rec["id"]).search([('name', '=', edge_name)])
-        
+
         response = dict()
         if not len(device.setup_protocol_ids) > 0:
             return response
