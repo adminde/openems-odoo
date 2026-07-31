@@ -23,10 +23,12 @@ class Device(models.Model):
     monitoring_url = fields.Char(
         "Online-Monitoring", compute="_compute_monitoring_url", store=False
     )
+
     first_setup_protocol_date = fields.Datetime(
         "First Setup Protocol Date", compute="_compute_first_setup_protocol"
     )
     manual_setup_date = fields.Datetime("Manual Setup Date")
+
     producttype = fields.Selection(
         selection="_compute_producttype_selection",
         string="Product type",
@@ -42,70 +44,9 @@ class Device(models.Model):
         string="OEM Branding",
         default=lambda self: self._compute_oem_default(),
     )
+
     stock_production_lot_id = fields.Many2one("stock.lot")
     settings = fields.Json()
-
-    @api.depends("setup_protocol_ids", "manual_setup_date")
-    def _compute_first_setup_protocol(self):
-        for rec in self:
-            if rec.manual_setup_date:
-                rec.first_setup_protocol_date = rec.manual_setup_date
-            elif len(rec.setup_protocol_ids) > 0:
-                rec.first_setup_protocol_date = rec.setup_protocol_ids[
-                    (len(rec.setup_protocol_ids) - 1)
-                ]["create_date"]
-            else:
-                rec.first_setup_protocol_date = None
-
-    @api.depends("name")
-    def _compute_monitoring_url(self):
-        # Corrected the parameter key to 'edge_monitoring_url'
-        base_url = self.__get_config("edge_monitoring_url", default='#')
-        for rec in self:
-            if isinstance(rec.name, str) and rec.name:
-                # Ensuring there is a '/' between base_url and rec.name if it's not already present
-                separator = '' if base_url.endswith('/') else '/'
-                rec.monitoring_url = base_url + separator + rec.name + "/live"
-            else:
-                rec.monitoring_url = base_url
-
-    @api.constrains("oem", "producttype")
-    def _check_producttype_matches_oem(self):
-        # A Selection offers the union of all brands and cannot be narrowed per
-        # record, so the pair is only enforceable here. This has to be done,
-        # because the brand resolves mail templates and reports on it.
-        for rec in self:
-            # Without an OEM there is no brand to validate the pair against.
-            if not rec.oem or not rec.producttype:
-                continue
-            brand = self.__get_oem(rec.oem)
-            if rec.producttype not in dict(brand.product_types()):
-                raise ValidationError(
-                    _("Product type '%(type)s' does not belong to OEM '%(oem)s'.")
-                    % {"type": rec.producttype, "oem": rec.oem}
-                )
-
-    def _compute_producttype_selection(self):
-        brands = self.__get_oem_brands()
-        return self._merge_oem_selections(brand.product_types() for brand in brands)
-
-    def _compute_emshardware_selection(self):
-        brands = self.__get_oem_brands()
-        return self._merge_oem_selections(brand.ems_hardwares() for brand in brands)
-
-    def _compute_oem_selection(self):
-        return [(brand._code, brand._label) for brand in self.__get_oem_brands()]
-
-    def _compute_oem_default(self):
-        return self.__get_config("edge_oem", default="openems")
-
-    def _merge_oem_selections(self, oem):
-        # Codes are global, so two brands may offer the same one. The last label
-        # wins rather than the value appearing twice in the dropdown.
-        selection = {}
-        for values in oem:
-            selection.update(dict(values))
-        return list(selection.items())
 
     # Settings
     openems_config = fields.Text("OpenEMS Config Full")
@@ -150,6 +91,69 @@ class Device(models.Model):
 
     # Helper fields
     name_number = fields.Integer(compute="_compute_name_number", store=True, index=True)
+
+    @api.depends("setup_protocol_ids", "manual_setup_date")
+    def _compute_first_setup_protocol(self):
+        for rec in self:
+            if rec.manual_setup_date:
+                rec.first_setup_protocol_date = rec.manual_setup_date
+            elif len(rec.setup_protocol_ids) > 0:
+                rec.first_setup_protocol_date = rec.setup_protocol_ids[
+                    (len(rec.setup_protocol_ids) - 1)
+                ]["create_date"]
+            else:
+                rec.first_setup_protocol_date = None
+
+    @api.depends("name")
+    def _compute_monitoring_url(self):
+        # Corrected the parameter key to 'edge_monitoring_url'
+        base_url = self.__get_config("edge_monitoring_url", default='#')
+        for rec in self:
+            if isinstance(rec.name, str) and rec.name:
+                # Ensuring there is a '/' between base_url and rec.name if it's not already present
+                separator = '' if base_url.endswith('/') else '/'
+                rec.monitoring_url = base_url + separator + rec.name + "/live"
+            else:
+                rec.monitoring_url = base_url
+
+    @api.constrains("oem", "producttype")
+    def _check_producttype_matches_oem(self):
+        # A Selection offers the union of all brands and cannot be narrowed per
+        # record, so the pair is only enforceable here. This has to be done,
+        # because the brand resolves mail templates and reports on it.
+        for rec in self:
+            # Without an OEM there is no brand to validate the pair against.
+            if not rec.oem or not rec.producttype:
+                continue
+            brand = self.__get_oem(rec.oem)
+            if rec.producttype not in dict(brand.product_types()):
+                raise ValidationError(
+                    _("Product type '%(type)s' does not belong to OEM '%(oem)s'.")
+                    % {"type": rec.producttype, "oem": rec.oem}
+                )
+
+    def _compute_producttype_selection(self):
+        return self._merge_oem_selections(brand.product_types() for brand in self.__get_oems())
+
+    def _compute_emshardware_selection(self):
+        return self._merge_oem_selections(brand.ems_hardware() for brand in self.__get_oems())
+
+    def _compute_emshardware_default(self):
+        return self._merge_oem_selections(brand.ems_hardware() for brand in self.__get_oems())
+
+    def _compute_oem_selection(self):
+        return [(brand._code, brand._label) for brand in self.__get_oems()]
+
+    def _compute_oem_default(self):
+        return self.__get_config("edge_oem", default="openems")
+
+    def _merge_oem_selections(self, oem):
+        # Codes are global, so two brands may offer the same one. The last label
+        # wins rather than the value appearing twice in the dropdown.
+        selection = {}
+        for values in oem:
+            selection.update(dict(values))
+        return list(selection.items())
 
     @api.depends("name")
     def _compute_name_number(self):
@@ -256,8 +260,16 @@ class Device(models.Model):
     def __get_config(self, key, default=None):
         return self.env["ir.config_parameter"].sudo().get_param(key, default=default)
 
-    def __get_oem_brands(self):
-        return self.env["openems.oem"]._brands()
+    def __get_oems(self):
+        """Every installed brand, ordered by code for stable selections."""
+        brands = []
+        for model_name in self.env.registry:
+            if not model_name.startswith("openems.oem."):
+                continue
+            brand = self.env[model_name]
+            if brand._code:
+                brands.append(brand)
+        return sorted(brands, key=lambda brand: brand._code)
 
     def __get_oem(self, code):
         return self.env[f"openems.oem.{code}"]

@@ -19,24 +19,6 @@ class Oem(models.AbstractModel):
     _description = "OEM"
 
 
-    def _brands(self) -> List[BaseModel]:
-        """Every installed brand, ordered by code for stable selections."""
-        brands = []
-        for model_name in self.env.registry:
-            if not model_name.startswith(f"{OEM}."):
-                continue
-            brand = self.env[model_name]
-            if brand._code:
-                brands.append(brand)
-        return sorted(brands, key=lambda brand: brand._code)
-
-    def _ref(self, name: str) -> Optional[BaseModel]:
-        if self._module != "openems":
-            found = self.env.ref(f"{self._module}.{name}", raise_if_not_found=False)
-            if found:
-                return found
-        return self.env.ref(f"openems.{name}")
-
     def product_types(self) -> List[Tuple[str, str]]:
         """Selection values a brand contributes to 'openems.device.producttype'.
 
@@ -45,7 +27,7 @@ class Oem(models.AbstractModel):
         """
         return []
 
-    def ems_hardwares(self) -> List[Tuple[str, str]]:
+    def ems_hardware(self) -> List[Tuple[str, str]]:
         """Selection values a brand contributes to 'openems.device.emshardware'."""
         return []
 
@@ -57,6 +39,13 @@ class Oem(models.AbstractModel):
         """ir.actions.report <name> as branded for this OEM."""
         return self._ref(name)
 
+    def _ref(self, name: str) -> Optional[BaseModel]:
+        if self._module != "openems":
+            found = self.env.ref(f"{self._module}.{name}", raise_if_not_found=False)
+            if found:
+                return found
+        return self.env.ref(f"openems.{name}")
+
 
 class OpenemsOem(models.AbstractModel):
     _code = "openems"
@@ -66,4 +55,6 @@ class OpenemsOem(models.AbstractModel):
     _label = "OpenEMS"
 
     def product_types(self) -> List[Tuple[str, str]]:
-        return [("openems-edge", _("OpenEMS Edge"))]
+        return [
+            ("openems-edge", "OpenEMS Edge"),
+        ]
