@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
     <record id="alerting_sum_state" model="mail.template">
-        <field name="name">E-Mail SumState Alerting</field>
+        <field name="name">OpenEMS: SumState Alerting</field>
         <field name="model_id" ref="model_openems_alerting" />
         <field
             name="email_from"
