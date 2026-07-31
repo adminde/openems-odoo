@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
-    <record id="openems.action_openems_setup_protocol_report" model="ir.actions.report">
+    <record id="action_openems_setup_protocol_report" model="ir.actions.report">
         <field name="name">OpenEMS Setup Protocol</field>
         <field name="model">openems.setup_protocol</field>
         <field name="report_type">qweb-pdf</field>
