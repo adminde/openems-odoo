@@ -2,13 +2,77 @@ from odoo import http
 
 
 class OpenemsBackend(http.Controller):
+    # Sort keys the OpenEMS Backend may send, mapped onto device fields.
+    __ORDER_FIELDS = {
+        "id": "name_number",
+        "comment": "comment",
+        "sumState": "openems_sum_state_level",
+    }
+
+    @classmethod
+    def __order_clause(cls, search_params) -> str:
+        if not search_params or not search_params.get("orderState"):
+            return ""
+        parts = []
+        for item in search_params.get("orderState"):
+            field = cls.__ORDER_FIELDS.get(item["field"])
+            if not field:
+                raise ValueError(f"{item['field']} is not supported")
+            parts.append(f"{field} {item['sortOrder']}")
+        return ",".join(parts)
+
+    @staticmethod
+    def __filter_domains(search_params) -> list:
+        domains = []
+        if not search_params:
+            return domains
+        if search_params.get("producttype"):
+            domains.append(("producttype", "in", search_params.get("producttype")))
+        if search_params.get("sumState"):
+            sum_states = [state.lower() for state in search_params.get("sumState")]
+            domains.append(("openems_sum_state_level", "in", sum_states))
+        if "isOnline" in search_params:
+            domains.append(("openems_is_connected", "=", search_params.get("isOnline")))
+        return domains
+
+    def __search_domain(self, query, search_params) -> list:
+        query_domains = []
+        operators = []
+        if query:
+            operators.extend(["|", "|"])
+            query_domains = [
+                ("name", "ilike", query),
+                ("comment", "ilike", query),
+                ("producttype", "ilike", query),
+            ]
+
+        additional_domains = self.__filter_domains(search_params)
+        if len(additional_domains) > 1:
+            for _ in range(len(additional_domains) - 1):
+                operators.insert(0, "&")
+
+        # insert 'and' if both are not 'None'
+        if query and search_params:
+            operators.insert(0, "&")
+
+        query_domains.extend(additional_domains)
+        operators.extend(query_domains)
+        return operators
+
     @http.route("/openems_backend/info", auth="user", type="json")
     def index(self, external_uid):
         # Get user
         res_users = http.request.env["res.users"].sudo()
         user_rec = res_users.search_read(
             [("oauth_uid", "=", external_uid)],
-            ["login", "name", "groups_id", "global_role", "openems_language", "settings"],
+            [
+                "login",
+                "name",
+                "groups_id",
+                "global_role",
+                "openems_language",
+                "settings",
+            ],
         )[0]
 
         # Get res group model
@@ -30,7 +94,10 @@ class OpenemsBackend(http.Controller):
             global_role = "admin"
 
         has_multiple_edges = False
-        if manager_group_id in user_rec["groups_id"] or reader_group_id in user_rec["groups_id"]:
+        if (
+            manager_group_id in user_rec["groups_id"]
+            or reader_group_id in user_rec["groups_id"]
+        ):
             has_multiple_edges = True
         else:
             device_user_role_model = http.request.env["openems.device_user_role"]
@@ -47,7 +114,7 @@ class OpenemsBackend(http.Controller):
                 "global_role": global_role,
                 "language": user_rec["openems_language"],
                 "has_multiple_edges": has_multiple_edges,
-                "settings": settings
+                "settings": settings,
             },
             "devices": [],
         }
@@ -74,7 +141,17 @@ class OpenemsBackend(http.Controller):
         device_model = http.request.env["openems.device"]
         devices = device_model.with_user(user_rec["id"]).search_read(
             [("name", "=", edge_id)],
-            ["id", "name", "comment", "producttype", "lastmessage", "first_setup_protocol_date", "openems_sum_state_level", "settings"])
+            [
+                "id",
+                "name",
+                "comment",
+                "producttype",
+                "lastmessage",
+                "first_setup_protocol_date",
+                "openems_sum_state_level",
+                "settings",
+            ],
+        )
 
         if len(devices) != 1:
             return {}
@@ -84,8 +161,8 @@ class OpenemsBackend(http.Controller):
         # Get specific Device roles
         device_user_role_model = http.request.env["openems.device_user_role"]
         device_user_roles = device_user_role_model.search_read(
-            [("user_id", "=", user_rec["id"]),
-             ("device_id", "=", device["id"])], ["id", "role"]
+            [("user_id", "=", user_rec["id"]), ("device_id", "=", device["id"])],
+            ["id", "role"],
         )
 
         # Set user role per group
@@ -108,7 +185,7 @@ class OpenemsBackend(http.Controller):
             "producttype": device["producttype"],
             "role": role,
             "lastmessage": device["lastmessage"],
-            "openems_sum_state_level": device["openems_sum_state_level"]
+            "openems_sum_state_level": device["openems_sum_state_level"],
         }
         if device.get("settings"):
             dev["settings"] = device["settings"]
@@ -143,68 +220,27 @@ class OpenemsBackend(http.Controller):
             [("user_id", "=", user_rec["id"])], ["id", "role"]
         )
 
-        domains = []
-        logical_operators = []
-        additional_domains = []
-        order = ""
-        if query:
-            logical_operators.extend(['|', '|'])
-            domains = [
-                ("name", "ilike", query),
-                ("comment", "ilike", query),
-                ("producttype", "ilike", query)]
-
-        if searchParams:
-            if searchParams.get("producttype"):
-                additional_domains.append(
-                    ("producttype", "in", searchParams.get("producttype")))
-
-            if searchParams.get("sumState"):
-                sum_states = list(map(lambda s: s.lower(), searchParams.get("sumState")))
-                additional_domains.append(
-                    ("openems_sum_state_level", "in", sum_states))
-
-            if searchParams.get("orderState"):
-
-                def map_field(sort_field):
-                    lookup = {"id": "name_number", "comment": "comment", "sumState": "openems_sum_state_level"}
-                    field = lookup.get(sort_field)
-
-                    if not field:
-                        raise ValueError(f"{sort_field} is not supported")
-                    return field
-                
-                order_state = list(map(lambda s: (map_field(s["field"]), s["sortOrder"]), searchParams.get("orderState")))
-                
-                for index, item in enumerate(order_state):
-                    order += item[0] + " " + item[1]
-
-                    if index < (len(order_state) - 1):
-                        order += ","
-
-            if "isOnline" in searchParams:
-                additional_domains.append(
-                    ("openems_is_connected", "=", searchParams.get("isOnline")))
-
-            if len(additional_domains) > 1:
-                for _ in range(len(additional_domains) - 1):
-                    logical_operators.insert(0, '&')
-
-        # insert 'and' if both are not 'None'
-        if query and searchParams:
-            logical_operators.insert(0, '&')
-
-        domains.extend(additional_domains)
-        logical_operators.extend(domains)
+        logical_operators = self.__search_domain(query, searchParams)
+        order = self.__order_clause(searchParams)
 
         # Get Devices
         device_model = http.request.env["openems.device"]
         devices = device_model.with_user(user_rec["id"]).search_read(
             logical_operators,
-            ["id", "name", "user_role_ids", "comment", "producttype",
-                "lastmessage", "first_setup_protocol_date", "openems_sum_state_level", "settings"],
+            [
+                "id",
+                "name",
+                "user_role_ids",
+                "comment",
+                "producttype",
+                "lastmessage",
+                "first_setup_protocol_date",
+                "openems_sum_state_level",
+                "settings",
+            ],
             order=order,
-            limit=limit, offset=(page * limit)
+            limit=limit,
+            offset=(page * limit),
         )
         devs = []
         for device_rec in devices:
@@ -231,12 +267,11 @@ class OpenemsBackend(http.Controller):
                 "producttype": device_rec["producttype"],
                 "role": role,
                 "lastmessage": device_rec["lastmessage"],
-                "openems_sum_state_level": device_rec["openems_sum_state_level"]
+                "openems_sum_state_level": device_rec["openems_sum_state_level"],
             }
-            
+
             if device_rec.get("settings"):
                 dev["settings"] = device_rec["settings"]
-
 
             if device_rec["first_setup_protocol_date"]:
                 dev["first_setup_protocol_date"] = device_rec[

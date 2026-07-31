@@ -53,12 +53,13 @@
                     <field
                         string="Setup protocol type"
                         name="setup_protocol_ids"
-                        filter_domain="[('setup_protocol_ids.type','ilike',self)]" />
+                        filter_domain="[('setup_protocol_ids.type','ilike',self)]"
+                    />
                     <field
                         string="Seriennummern"
                         name="setup_protocol_ids"
-                        filter_domain="['|', '|',('setup_protocol_ids.productionlot_ids.lot_id.name','ilike',self),('openems_config_components','ilike',self),('setup_protocol_ids.item_ids.value','ilike',self)]" />
-
+                        filter_domain="['|', '|',('setup_protocol_ids.productionlot_ids.lot_id.name','ilike',self),('openems_config_components','ilike',self),('setup_protocol_ids.item_ids.value','ilike',self)]"
+                    />
                 </group>
             </search>
         </field>
@@ -124,7 +125,7 @@
                                     nolabel="True"
                                 />
                                 <field name="first_setup_protocol_date" />
-                                <field name="manual_setup_date"/>
+                                <field name="manual_setup_date" />
                             </group>
                             <group string="Hardware">
                                 <field name="producttype" />
@@ -132,7 +133,7 @@
                                 <field name="oem" />
                             </group>
                             <group string="Product">
-                                <field name="stock_production_lot_id"/>
+                                <field name="stock_production_lot_id" />
                             </group>
                         </page>
                         <page string="Security">
@@ -195,8 +196,14 @@
                                 >
                                     <list editable="bottom">
                                         <field name="user_id" />
-                                        <field name="offline_last_notification" readonly="True" />
-                                        <field name="sum_state_last_notification" readonly="True" />
+                                        <field
+                                            name="offline_last_notification"
+                                            readonly="True"
+                                        />
+                                        <field
+                                            name="sum_state_last_notification"
+                                            readonly="True"
+                                        />
                                         <field name="offline_delay" />
                                         <field name="warning_delay" />
                                         <field name="fault_delay" />

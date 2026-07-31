@@ -2,6 +2,8 @@ exclude: |
   (?x)
   # We don't want to mess with tool-generated files
   .svg$|/tests/([^/]+/)?cassettes/|^.github/|^eslint.config.cjs|^prettier.config.cjs|
+  # Copier owns this file and overwrites it on the next template update
+  ^\.copier-answers\.yml$|
   ^README\.md$|
   # Legacy setuptools-odoo packaging; also excluded in .ruff.toml
   ^setup/|

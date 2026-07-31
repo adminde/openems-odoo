@@ -50,31 +50,29 @@ class SetupProtocol(http.Controller):
             }
         )
 
-        templates = self.__get_templates(device_rec[0]['oem'], ibn_pdf)
+        templates = self.__get_templates(device_rec[0]["oem"], ibn_pdf)
 
-        templates['installer'].send_mail(setupProtocolId)
-        templates['customer'].send_mail(setupProtocolId)
+        templates["installer"].send_mail(setupProtocolId)
+        templates["customer"].send_mail(setupProtocolId)
 
         return {}
 
     def __get_templates(self, oem: str, protocol):
-        templates = {'customer': None, 'installer': None}
+        templates = {"customer": None, "installer": None}
 
-        templates['customer'] = request.env.ref(
-            "openems.setup_protocol_email_customer")
-        templates['installer'] = request.env.ref(
-            "openems.setup_protocol_email_installer")
+        templates["customer"] = request.env.ref("openems.setup_protocol_email_customer")
+        templates["installer"] = request.env.ref(
+            "openems.setup_protocol_email_installer"
+        )
 
         logo = request.env.ref("openems.attachment_logo_openems")
 
-        templates['customer'].attachment_ids = [
-            (6, 0, [protocol.id, logo.id])]
-        templates['installer'].attachment_ids = [
-            (6, 0, [protocol.id, logo.id])]
+        templates["customer"].attachment_ids = [(6, 0, [protocol.id, logo.id])]
+        templates["installer"].attachment_ids = [(6, 0, [protocol.id, logo.id])]
 
         return templates
 
-    @http.route('/openems_backend/get_latest_setup_protocol', type='json', auth='user')
+    @http.route("/openems_backend/get_latest_setup_protocol", type="json", auth="user")
     def get_latest_setup_protocol(self, external_uid, edge_name):
         res_users = http.request.env["res.users"].sudo()
         user_rec = res_users.search_read(
@@ -83,8 +81,10 @@ class SetupProtocol(http.Controller):
         )[0]
 
         # search for device
-        device_model = request.env['openems.device']
-        device = device_model.with_user(user_rec["id"]).search([('name', '=', edge_name)])
+        device_model = request.env["openems.device"]
+        device = device_model.with_user(user_rec["id"]).search(
+            [("name", "=", edge_name)]
+        )
 
         response = dict()
         if not len(device.setup_protocol_ids) > 0:
@@ -94,65 +94,67 @@ class SetupProtocol(http.Controller):
 
         # build customer object
         customer = latest_protocol.customer_id
-        customer_values = dict({
-            "firstname": customer['firstname'],
-            "lastname": customer['lastname'],
-            "email": customer['email'],
-            "phone": customer['phone'],
-            "address": {
-                "street": customer['street'],
-                "city": customer['city'],
-                "zip": customer['zip'],
-                "country": customer['country_id']['name']
+        customer_values = dict(
+            {
+                "firstname": customer["firstname"],
+                "lastname": customer["lastname"],
+                "email": customer["email"],
+                "phone": customer["phone"],
+                "address": {
+                    "street": customer["street"],
+                    "city": customer["city"],
+                    "zip": customer["zip"],
+                    "country": customer["country_id"]["name"],
+                },
             }
-        })
+        )
 
         # check company for customer
-        customer_company = customer['commercial_company_name']
+        customer_company = customer["commercial_company_name"]
         if customer_company:
-            customer_values.update({
-                "company": {
-                    "name": customer['commercial_company_name']
-                }
-            })
+            customer_values.update(
+                {"company": {"name": customer["commercial_company_name"]}}
+            )
         response.update({"customer": customer_values})
 
         # check different location is available
-        location = latest_protocol['different_location_id']
+        location = latest_protocol["different_location_id"]
         if location:
-            location_values = dict({
-                "firstname": location['firstname'],
-                "lastname": location['lastname'],
-                "email": location['email'],
-                "phone": location['phone'],
-                "address": {
-                    "street": location['street'],
-                    "city": location['city'],
-                    "zip": location['zip'],
-                    "country": location['country_id']['name']
+            location_values = dict(
+                {
+                    "firstname": location["firstname"],
+                    "lastname": location["lastname"],
+                    "email": location["email"],
+                    "phone": location["phone"],
+                    "address": {
+                        "street": location["street"],
+                        "city": location["city"],
+                        "zip": location["zip"],
+                        "country": location["country_id"]["name"],
+                    },
                 }
-            })
+            )
 
             # check company for different location
-            different_location_company = location['commercial_company_name']
+            different_location_company = location["commercial_company_name"]
             if different_location_company:
-                location_values.update({
-                    "company": {
-                        "name": location['commercial_company_name']
-                    }
-                })
+                location_values.update(
+                    {"company": {"name": location["commercial_company_name"]}}
+                )
             response.update({"location": location_values})
 
         # build items object
         items = list()
         for item in latest_protocol.item_ids:
-            items.append({
-                "view": item['view'],
-                "field": item['field'],
-                "category": item['category'],
-                "name": item['name'],
-                "value": item['value']
-            })
+            items.append(
+                {
+                    "view": item["view"],
+                    "field": item["field"],
+                    "category": item["category"],
+                    "name": item["name"],
+                    "value": item["value"],
+                }
+            )
         response.update({"items": items})
 
         return response

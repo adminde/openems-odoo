@@ -22,7 +22,6 @@ class SetupProtocol(models.Model):
             ("ems-exchange", "EMS exchange"),
             ("capacity-extension", "Capacity extension"),
         ],
-        "Type",
         default="setup-protocol",
     )
 
@@ -33,8 +32,8 @@ class SetupProtocolProductionLot(models.Model):
     _order = "setup_protocol_id, category, sequence asc"
 
     sequence = fields.Integer("Sort")
-    category = fields.Char("Category")
-    name = fields.Char("Name")
+    category = fields.Char()
+    name = fields.Char()
     lot_id = fields.Many2one("stock.lot", "Serial Number")
     setup_protocol_id = fields.Many2one(
         "openems.setup_protocol", "Setup Protocol", ondelete="cascade"
@@ -47,12 +46,11 @@ class SetupProtocolItem(models.Model):
     _order = "setup_protocol_id, category, sequence asc"
 
     sequence = fields.Integer("Sort")
-    category = fields.Char("Category")
-    name = fields.Char("Name")
-    value = fields.Char("Value")
+    category = fields.Char()
+    name = fields.Char()
+    value = fields.Char()
     setup_protocol_id = fields.Many2one(
         "openems.setup_protocol", "Setup Protocol", ondelete="cascade"
     )
     view = fields.Char("View Identifier")
     field = fields.Char("Field Identifier")
-

@@ -11,7 +11,7 @@ ROUTE_DEPRECATED = "/openems_backend/sendRegistrationEmail"
 
 class User(http.Controller):
     @http.route([ROUTE, ROUTE_DEPRECATED], type="json", auth="user")
-    def index(self, userId, password=None, oem: str = ''):
+    def index(self, userId, password=None, oem: str = ""):
         if request.httprequest.path == ROUTE_DEPRECATED:
             _logger.warning(
                 "Deprecated route %s called, use %s instead", ROUTE_DEPRECATED, ROUTE
@@ -30,13 +30,9 @@ class User(http.Controller):
             password = "*****"
         # load template
         template = self.__get_template(oem)
-        # set mail values
-        email_values = {
-            'password': password
-        }
-        # send mail
-        template.with_context(email_values).send_mail(
-            res_id=partner_id[0])
+        # Passed as kwargs, not as a dict: a positional dict replaces the whole
+        # context instead of extending it, dropping lang/tz for the rendering.
+        template.with_context(password=password).send_mail(res_id=partner_id[0])
         return {}
 
     def __get_template(self, oem: str):
