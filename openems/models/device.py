@@ -142,7 +142,7 @@ class Device(models.Model):
         return self._merge_oem_selections(brand.ems_hardware() for brand in self.__get_oems())
 
     def _compute_oem_selection(self):
-        return [(brand._code, brand._label) for brand in self.__get_oems()]
+        return [(brand._code, _(brand._label)) for brand in self.__get_oems()]
 
     def _compute_oem_default(self):
         return self.__get_config("edge_oem", default="openems")

@@ -56,5 +56,5 @@ class OpenemsOem(models.AbstractModel):
 
     def product_types(self) -> List[Tuple[str, str]]:
         return [
-            ("openems-edge", "OpenEMS Edge"),
+            ("openems-edge", _("OpenEMS Edge")),
         ]
