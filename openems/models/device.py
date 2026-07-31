@@ -6,7 +6,7 @@ import string
 
 class Device(models.Model):
     _name = "openems.device"
-    _description = "OpenEMS Edge"
+    _description = "OpenEMS Edge Device"
     _inherit = "mail.thread"
     _order = "name_number asc"
     _sql_constraints = [
