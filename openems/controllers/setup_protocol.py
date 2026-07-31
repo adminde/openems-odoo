@@ -28,8 +28,7 @@ class SetupProtocol(http.Controller):
         )
         oem = device_rec[0]['oem']
         if not oem:
-            oem = request.env["ir.config_parameter"].sudo().get_param("edge_oem", "openems")
-
+            oem = self.__get_config("edge_oem", default="openems")
         report = self.__get_report(oem, "action_setup_protocol_report", device_rec[0]["producttype"])
         data = report._render_qweb_pdf([setupProtocolId])
         ibnPdf = request.env["ir.attachment"].create(
@@ -131,21 +130,21 @@ class SetupProtocol(http.Controller):
 
         return response
 
-    @staticmethod
-    def __get_report(oem, product_type: str, name: str):
-        if not oem:
-            oem = request.env["ir.config_parameter"].sudo().get_param("edge_oem", "openems")
-        resolver = request.env[f"openems.oem.{oem}"]
-        return resolver.report(name, product_type)
+    @classmethod
+    def __get_report(cls, brand, product_type: str, name: str):
+        if not brand:
+            brand = cls.__get_config("edge_oem", default="openems")
+        oem = cls.__get_oem(brand)
+        return oem.report(name, product_type)
 
-    @staticmethod
-    def __get_templates(oem: str, product_type: str, protocol):
-        if not oem:
-            oem = request.env["ir.config_parameter"].sudo().get_param("edge_oem", "openems")
-        resolver = request.env[f"openems.oem.{oem}"]
+    @classmethod
+    def __get_templates(cls, brand: str, product_type: str, protocol):
+        if not brand:
+            brand = cls.__get_config("edge_oem", default="openems")
+        oem = cls.__get_oem(brand)
         templates = {
-            'customer': resolver.mail_template("setup_protocol_email_customer", product_type),
-            'installer': resolver.mail_template("setup_protocol_email_installer", product_type),
+            'customer': oem.mail_template("setup_protocol_email_customer", product_type),
+            'installer': oem.mail_template("setup_protocol_email_installer", product_type),
         }
 
         # The footer logo is a static module path, not an attachment - adding it
@@ -154,3 +153,11 @@ class SetupProtocol(http.Controller):
             template.attachment_ids = [(6, 0, [protocol.id])]
 
         return templates
+
+    @classmethod
+    def __get_config(cls, key, default=None):
+        return request.env["ir.config_parameter"].sudo().get_param(key, default=default)
+
+    @classmethod
+    def __get_oem(cls, code):
+        return request.env[f"openems.oem.{code}"]

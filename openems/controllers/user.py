@@ -27,8 +27,16 @@ class User(http.Controller):
             res_id=partner_id[0])
         return {}
 
-    def __get_template(self, oem: str):
-        if not oem:
-            oem = request.env["ir.config_parameter"].sudo().get_param("edge_oem", "openems")
+    @classmethod
+    def __get_template(cls, brand: str):
+        if not brand:
+            brand = cls.__get_config("edge_oem", default="openems")
+        return cls.__get_oem(brand).mail_template("registration_email")
 
-        return request.env[f"openems.oem.{oem}"].mail_template("registration_email")
+    @classmethod
+    def __get_config(cls, key, default=None):
+        return request.env["ir.config_parameter"].sudo().get_param(key, default=default)
+
+    @classmethod
+    def __get_oem(cls, code):
+        return request.env[f"openems.oem.{code}"]

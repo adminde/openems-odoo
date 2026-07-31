@@ -85,11 +85,19 @@ class Alerting(http.Controller):
         return msgs
 
     def __get_template(self, device_id, name: str):
-        oem, product_type = self.__get_device_data(device_id)
-        if not oem:
-            oem = request.env["ir.config_parameter"].sudo().get_param("edge_oem", "openems")
-        resolver = request.env[f"openems.oem.{oem}"]
-        return resolver.mail_template(name, product_type)
+        brand, product_type = self.__get_device_data(device_id)
+        if not brand:
+            brand = self.__get_config("edge_oem", default="openems")
+        oem = self.__get_oem(brand)
+        return oem.mail_template(name, product_type)
+
+    @staticmethod
+    def __get_config(key, default=None):
+        return request.env["ir.config_parameter"].sudo().get_param(key, default=default)
+
+    @staticmethod
+    def __get_oem(code):
+        return request.env[f"openems.oem.{code}"]
 
     def __get_device_data(self, device_id) -> Tuple[Optional[str], Optional[str]]:
         if device_id:

@@ -37,11 +37,17 @@ class SetupProtocol(models.Model):
         )
         return report.report_action(self)
 
-    def __get_report(self, oem, product_type: str, name: str):
-        if not oem:
-            oem = self.env["ir.config_parameter"].sudo().get_param("edge_oem", "openems")
-        resolver = self.env[f"openems.oem.{oem}"]
-        return resolver.report(name, product_type)
+    def __get_report(self, brand, product_type: str, name: str):
+        if not brand:
+            brand = self.__get_config("edge_oem", default="openems")
+        oem = self.__get_oem(brand)
+        return oem.report(name, product_type)
+
+    def __get_config(self, key, default=None):
+        return self.env["ir.config_parameter"].sudo().get_param(key, default=default)
+
+    def __get_oem(self, code):
+        return self.env[f"openems.oem.{code}"]
 
 
 class SetupProtocolProductionLot(models.Model):

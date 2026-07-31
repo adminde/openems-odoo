@@ -23,11 +23,26 @@ class Device(models.Model):
     monitoring_url = fields.Char(
         "Online-Monitoring", compute="_compute_monitoring_url", store=False
     )
-    stock_production_lot_id = fields.Many2one("stock.lot")
     first_setup_protocol_date = fields.Datetime(
         "First Setup Protocol Date", compute="_compute_first_setup_protocol"
     )
     manual_setup_date = fields.Datetime("Manual Setup Date")
+    producttype = fields.Selection(
+        selection="_compute_producttype_selection",
+        string="Product type",
+        tracking=True,
+    )
+    emshardware = fields.Selection(
+        selection="_compute_emshardware_selection",
+        string="EMS Hardware",
+        tracking=True,
+    )
+    oem = fields.Selection(
+        selection="_compute_oem_selection",
+        string="OEM Branding",
+        default=lambda self: self._compute_oem_default(),
+    )
+    stock_production_lot_id = fields.Many2one("stock.lot")
     settings = fields.Json()
 
     @api.depends("setup_protocol_ids", "manual_setup_date")
@@ -45,7 +60,7 @@ class Device(models.Model):
     @api.depends("name")
     def _compute_monitoring_url(self):
         # Corrected the parameter key to 'edge_monitoring_url'
-        base_url = self.env["ir.config_parameter"].sudo().get_param("edge_monitoring_url", default='#')
+        base_url = self.__get_config("edge_monitoring_url", default='#')
         for rec in self:
             if isinstance(rec.name, str) and rec.name:
                 # Ensuring there is a '/' between base_url and rec.name if it's not already present
@@ -53,22 +68,6 @@ class Device(models.Model):
                 rec.monitoring_url = base_url + separator + rec.name + "/live"
             else:
                 rec.monitoring_url = base_url
-
-    producttype = fields.Selection(
-        selection="_compute_producttype_selection",
-        string="Product type",
-        tracking=True,
-    )
-    emshardware = fields.Selection(
-        selection="_compute_emshardware_selection",
-        string="EMS Hardware",
-        tracking=True,
-    )
-    oem = fields.Selection(
-        selection="_compute_oem_selection",
-        string="OEM Branding",
-        default=lambda self: self._compute_oem_default(),
-    )
 
     @api.constrains("oem", "producttype")
     def _check_producttype_matches_oem(self):
@@ -79,7 +78,7 @@ class Device(models.Model):
             # Without an OEM there is no brand to validate the pair against.
             if not rec.oem or not rec.producttype:
                 continue
-            brand = self.env[f"openems.oem.{rec.oem}"]
+            brand = self.__get_oem(rec.oem)
             if rec.producttype not in dict(brand.product_types()):
                 raise ValidationError(
                     _("Product type '%(type)s' does not belong to OEM '%(oem)s'.")
@@ -87,18 +86,18 @@ class Device(models.Model):
                 )
 
     def _compute_producttype_selection(self):
-        brands = self.env["openems.oem"]._brands()
+        brands = self.__get_oem_brands()
         return self._merge_oem_selections(brand.product_types() for brand in brands)
 
     def _compute_emshardware_selection(self):
-        brands = self.env["openems.oem"]._brands()
+        brands = self.__get_oem_brands()
         return self._merge_oem_selections(brand.ems_hardwares() for brand in brands)
 
     def _compute_oem_selection(self):
-        return [(brand._code, brand._label) for brand in self.env["openems.oem"]._brands()]
+        return [(brand._code, brand._label) for brand in self.__get_oem_brands()]
 
     def _compute_oem_default(self):
-        return self.env["ir.config_parameter"].sudo().get_param("edge_oem", "openems")
+        return self.__get_config("edge_oem", default="openems")
 
     def _merge_oem_selections(self, oem):
         # Codes are global, so two brands may offer the same one. The last label
@@ -253,6 +252,15 @@ class Device(models.Model):
                 if existing:
                     raise ValidationError(
                         _("The API key already exists and must be unique. Please choose a different API key."))
+
+    def __get_config(self, key, default=None):
+        return self.env["ir.config_parameter"].sudo().get_param(key, default=default)
+
+    def __get_oem_brands(self):
+        return self.env["openems.oem"]._brands()
+
+    def __get_oem(self, code):
+        return self.env[f"openems.oem.{code}"]
 
 
 class DeviceTag(models.Model):
