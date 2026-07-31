@@ -28,9 +28,10 @@ class Device(models.Model):
     monitoring_url = fields.Char(
         "Online-Monitoring", compute="_compute_monitoring_url", store=False
     )
+
     first_setup_protocol_date = fields.Datetime(compute="_compute_first_setup_protocol")
     manual_setup_date = fields.Datetime()
-    settings = fields.Json()
+
     producttype = fields.Selection(
         [
             ("openems-edge", "OpenEMS Edge"),
@@ -46,31 +47,9 @@ class Device(models.Model):
         "OEM Branding",
         default="openems",
     )
+
     stock_production_lot_id = fields.Many2one("stock.lot")
-
-    @api.depends("setup_protocol_ids", "manual_setup_date")
-    def _compute_first_setup_protocol(self):
-        for rec in self:
-            if rec.manual_setup_date:
-                rec.first_setup_protocol_date = rec.manual_setup_date
-            elif len(rec.setup_protocol_ids) > 0:
-                rec.first_setup_protocol_date = rec.setup_protocol_ids[
-                    (len(rec.setup_protocol_ids) - 1)
-                ]["create_date"]
-            else:
-                rec.first_setup_protocol_date = None
-
-    @api.depends("name")
-    def _compute_monitoring_url(self):
-        # Corrected the parameter key to 'edge_monitoring_url'
-        base_url = self.__get_config("edge_monitoring_url", default="#")
-        for rec in self:
-            if isinstance(rec.name, str) and rec.name:
-                # Ensure a single '/' between base_url and rec.name
-                separator = "" if base_url.endswith("/") else "/"
-                rec.monitoring_url = base_url + separator + rec.name + "/live"
-            else:
-                rec.monitoring_url = base_url
+    settings = fields.Json()
 
     # Settings
     openems_config = fields.Text("OpenEMS Config Full")
@@ -115,6 +94,30 @@ class Device(models.Model):
 
     # Helper fields
     name_number = fields.Integer(compute="_compute_name_number", store=True, index=True)
+
+    @api.depends("setup_protocol_ids", "manual_setup_date")
+    def _compute_first_setup_protocol(self):
+        for rec in self:
+            if rec.manual_setup_date:
+                rec.first_setup_protocol_date = rec.manual_setup_date
+            elif len(rec.setup_protocol_ids) > 0:
+                rec.first_setup_protocol_date = rec.setup_protocol_ids[
+                    (len(rec.setup_protocol_ids) - 1)
+                ]["create_date"]
+            else:
+                rec.first_setup_protocol_date = None
+
+    @api.depends("name")
+    def _compute_monitoring_url(self):
+        # Corrected the parameter key to 'edge_monitoring_url'
+        base_url = self.__get_config("edge_monitoring_url", default="#")
+        for rec in self:
+            if isinstance(rec.name, str) and rec.name:
+                # Ensure a single '/' between base_url and rec.name
+                separator = "" if base_url.endswith("/") else "/"
+                rec.monitoring_url = base_url + separator + rec.name + "/live"
+            else:
+                rec.monitoring_url = base_url
 
     @api.depends("name")
     def _compute_name_number(self):
