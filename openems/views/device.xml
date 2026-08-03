@@ -288,9 +288,9 @@
         <field name="name">Device Systemmessage: Tree</field>
         <field name="model">openems.systemmessage</field>
         <field name="arch" type="xml">
-            <list string="Users">
-                <field name="device_id" width="137px" />
+            <list>
                 <field name="timestamp" />
+                <field name="device_id" width="137px" />
                 <field name="text_teaser" />
             </list>
         </field>
