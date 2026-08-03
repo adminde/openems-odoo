@@ -157,21 +157,28 @@ class Device(models.Model):
                     raise exceptions.UserError("The name of the device cannot be changed after creation.")
         return super(Device, self).write(vals)
 
-    @api.model
-    def create(self, vals):
-        # Generate name if not provided
-        if not vals.get('name'):
-            vals['name'] = self._generate_unique_name(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        # The name counter comes from the highest stored name_number, which only
+        # advances once the batch is flushed. Numbers are therefore handed out
+        # with an offset here, otherwise every record of a multi-create would
+        # claim the same name and hit the unique_name constraint.
+        offset = 0
+        for vals in vals_list:
+            # Generate name if not provided
+            if not vals.get("name"):
+                vals["name"] = self._generate_unique_name(vals, offset=offset)
+                offset += 1
 
-        # Generate setup password if not provided
-        if 'setup_password' not in vals or not vals['setup_password']:
-            vals['setup_password'] = self._generate_unique_setup_password()
+            # Generate setup password if not provided
+            if "setup_password" not in vals or not vals["setup_password"]:
+                vals["setup_password"] = self._generate_unique_setup_password()
 
-        # Generate API key if not provided
-        if 'apikey' not in vals or not vals['apikey']:
-            vals['apikey'] = self._generate_api_key()
+            # Generate API key if not provided
+            if "apikey" not in vals or not vals["apikey"]:
+                vals["apikey"] = self._generate_api_key(vals)
 
-        return super(Device, self).create(vals)
+        return super().create(vals_list)
 
     @api.onchange('producttype')
     def _onchange_producttype(self):
@@ -182,12 +189,16 @@ class Device(models.Model):
         self.name = self._generate_unique_name({'producttype': self.producttype})
 
     @api.model
-    def _generate_unique_name(self, vals):
+    def _generate_unique_name(self, vals, offset=0):
+        """Next free device name. 'offset' skips ahead for batch creation."""
         prefix = {
             'openems-edge': 'edge',
         }.get(vals.get('producttype', 'edge'), 'edge')
         last = self.search([], order='name_number desc', limit=1)
-        return f'{prefix}{(last.name_number + 1) if last and last.name_number > 0 else 0}'
+        # name_number is -1 for names that do not follow the prefix pattern,
+        # so only a non-negative highest number advances the counter.
+        next_number = (last.name_number + 1) if last and last.name_number >= 0 else 0
+        return f'{prefix}{next_number + offset}'
 
     @api.model
     def _generate_unique_setup_password(self):
