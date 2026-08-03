@@ -63,7 +63,7 @@
         <field name="arch" type="xml">
             <list>
                 <field name="create_date" />
-                <field name="device_id" />
+                <field name="device_id" width="137px" />
                 <field name="installer_id" />
                 <field name="customer_id" />
             </list>

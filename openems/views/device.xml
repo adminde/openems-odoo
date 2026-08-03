@@ -256,7 +256,7 @@
         <field name="arch" type="xml">
             <list string="OpenEMS Configuration Updates">
                 <field name="create_date" />
-                <field name="device_id" />
+                <field name="device_id" width="137px" />
                 <field name="teaser" string="Details" />
             </list>
         </field>
@@ -289,7 +289,7 @@
         <field name="model">openems.systemmessage</field>
         <field name="arch" type="xml">
             <list string="Users">
-                <field name="device_id" />
+                <field name="device_id" width="137px" />
                 <field name="timestamp" />
                 <field name="text_teaser" />
             </list>
